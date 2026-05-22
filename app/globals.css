@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base dark theme ── */
+html, body {
+  background-color: #030D2A;
+  color: #ffffff;
+}
+
+/* ── Spinning ring loader ── */
+@keyframes ring-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes ring-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50%       { opacity: 1;   transform: scale(1.05); }
+}
+
+@keyframes dots {
+  0%   { content: '.'; }
+  33%  { content: '..'; }
+  66%  { content: '...'; }
+  100% { content: '.'; }
+}
+
+@keyframes fadeInUp {
+  0%   { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px 2px rgba(59, 158, 255, 0.25); }
+  50%       { box-shadow: 0 0 28px 6px rgba(59, 158, 255, 0.55); }
+}
+
+.ring-spinner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 5px solid rgba(59, 158, 255, 0.15);
+  border-top-color: #3B9EFF;
+  border-right-color: rgba(59, 158, 255, 0.6);
+  animation: ring-spin 1.4s linear infinite;
+}
+
+.ring-spinner-inner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(204, 41, 54, 0.15);
+  border-top-color: #CC2936;
+  animation: ring-spin 0.9s linear infinite reverse;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.glow-blue {
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Score badge styles ── */
+.score-high   { background: rgba(34, 197, 94, 0.15);  color: #4ADE80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.score-mid    { background: rgba(234, 179, 8, 0.15);  color: #FACC15; border: 1px solid rgba(234, 179, 8, 0.3); }
+.score-low    { background: rgba(239, 68, 68, 0.15);  color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: #030D2A; }
+::-webkit-scrollbar-thumb { background: #1A3A8A; border-radius: 3px; }
