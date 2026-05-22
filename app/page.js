@@ -1,19 +1,19 @@
 'use client'
-
+ 
 import { useState, useEffect, useCallback } from 'react'
 import Header from '@/components/Header'
 import TopicCard from '@/components/TopicCard'
-
+ 
 function getMonthString(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
-
+ 
 function formatMonthDisplay(monthStr) {
   const [year, month] = monthStr.split('-')
   const date = new Date(parseInt(year), parseInt(month) - 1, 1)
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
-
+ 
 // ── Animated loading overlay shown while AI generates ──
 function GeneratingOverlay() {
   const [dot, setDot] = useState(0)
@@ -25,15 +25,15 @@ function GeneratingOverlay() {
     'Finalizing your content calendar…',
   ]
   const [msgIndex, setMsgIndex] = useState(0)
-
+ 
   useEffect(() => {
     const dotTimer = setInterval(() => setDot((d) => (d + 1) % 4), 500)
     const msgTimer = setInterval(() => setMsgIndex((m) => (m + 1) % messages.length), 3500)
     return () => { clearInterval(dotTimer); clearInterval(msgTimer) }
   }, [])
-
+ 
   const dots = '.'.repeat(dot)
-
+ 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-950/90 backdrop-blur-sm">
       {/* Double spinning rings */}
@@ -42,14 +42,14 @@ function GeneratingOverlay() {
         <div className="ring-spinner-inner" />
         <span className="absolute text-2xl">🎯</span>
       </div>
-
+ 
       <h2 className="text-xl font-bold text-white mb-2">
         Generating Your Topics{dots}
       </h2>
       <p className="text-navy-500 text-sm transition-all duration-700 animate-pulse-slow">
         {messages[msgIndex]}
       </p>
-
+ 
       <div className="mt-8 flex gap-2">
         {messages.map((_, i) => (
           <div
@@ -60,12 +60,12 @@ function GeneratingOverlay() {
           />
         ))}
       </div>
-
+ 
       <p className="mt-6 text-navy-700 text-xs">This usually takes 15–30 seconds</p>
     </div>
   )
 }
-
+ 
 // ── Stat pill in the summary bar ──
 function StatPill({ label, value, color = 'text-brand-blue' }) {
   return (
@@ -75,7 +75,7 @@ function StatPill({ label, value, color = 'text-brand-blue' }) {
     </div>
   )
 }
-
+ 
 export default function Home() {
   const [currentMonth, setCurrentMonth] = useState(getMonthString(new Date()))
   const [topics, setTopics] = useState([])
@@ -83,7 +83,7 @@ export default function Home() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
-
+ 
   const fetchTopics = useCallback(async (month) => {
     setLoading(true)
     setError(null)
@@ -100,11 +100,11 @@ export default function Home() {
       setLoading(false)
     }
   }, [])
-
+ 
   useEffect(() => {
     fetchTopics(currentMonth)
   }, [currentMonth, fetchTopics])
-
+ 
   const handleGenerate = async () => {
     setGenerating(true)
     setError(null)
@@ -132,16 +132,51 @@ export default function Home() {
       setGenerating(false)
     }
   }
-
+ 
+  const handleRegenerate = async () => {
+    const confirmed = window.confirm(
+      `Replace all 10 topics for ${formatMonthDisplay(currentMonth)} with brand new ones?\n\nThe current topics will be permanently deleted.`
+    )
+    if (!confirmed) return
+ 
+    setGenerating(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      // Delete existing topics for this month
+      const deleteRes = await fetch(`/api/topics?month=${currentMonth}`, { method: 'DELETE' })
+      const deleteData = await deleteRes.json()
+      if (!deleteData.success) throw new Error('Failed to delete existing topics.')
+ 
+      // Generate fresh ones
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: currentMonth }),
+      })
+      const data = await res.json()
+      if (data.topics) {
+        setTopics(data.topics)
+        setSuccessMsg(`Fresh topics generated for ${formatMonthDisplay(currentMonth)}!`)
+      } else {
+        setError(data.error || 'Regeneration failed.')
+      }
+    } catch (err) {
+      setError(err.message || 'Regeneration failed.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+ 
   const navigateMonth = (direction) => {
     const [year, month] = currentMonth.split('-').map(Number)
     const date = new Date(year, month - 1 + direction, 1)
     setCurrentMonth(getMonthString(date))
   }
-
+ 
   const hasTopics = topics.length > 0
   const isCurrentMonth = currentMonth === getMonthString(new Date())
-
+ 
   // Compute averages for stats bar
   const avgEngagement = hasTopics
     ? (topics.reduce((s, t) => s + t.engagement_score, 0) / topics.length).toFixed(1)
@@ -152,16 +187,16 @@ export default function Home() {
   const avgOverall = hasTopics
     ? (topics.reduce((s, t) => s + t.overall_score, 0) / topics.length).toFixed(1)
     : '—'
-
+ 
   return (
     <div className="min-h-screen bg-navy-950 text-white">
       {/* Animated generating overlay */}
       {generating && <GeneratingOverlay />}
-
+ 
       <Header />
-
+ 
       <main className="max-w-5xl mx-auto px-4 py-8">
-
+ 
         {/* ── Month Navigation ── */}
         <div className="flex items-center justify-between mb-6 bg-navy-900 border border-navy-800 rounded-2xl px-5 py-4">
           <button
@@ -170,7 +205,7 @@ export default function Home() {
           >
             ← Prev
           </button>
-
+ 
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white tracking-tight">
               {formatMonthDisplay(currentMonth)}
@@ -186,7 +221,7 @@ export default function Home() {
               )}
             </div>
           </div>
-
+ 
           <button
             onClick={() => navigateMonth(1)}
             className="flex items-center gap-2 text-navy-500 hover:text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-800 transition-all"
@@ -194,7 +229,7 @@ export default function Home() {
             Next →
           </button>
         </div>
-
+ 
         {/* ── Stats Bar (only when topics exist) ── */}
         {hasTopics && !loading && (
           <div className="grid grid-cols-4 gap-3 mb-6 animate-fade-in-up">
@@ -204,7 +239,7 @@ export default function Home() {
             <StatPill label="Avg Overall Score" value={avgOverall} color="text-brand-blue" />
           </div>
         )}
-
+ 
         {/* ── Alerts ── */}
         {successMsg && (
           <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl mb-5 animate-fade-in-up">
@@ -218,7 +253,7 @@ export default function Home() {
             <span className="text-sm font-medium">{error}</span>
           </div>
         )}
-
+ 
         {/* ── Loading state (fetching from DB) ── */}
         {loading && (
           <div className="text-center py-20 text-navy-600">
@@ -226,7 +261,7 @@ export default function Home() {
             <p className="text-sm">Loading topics…</p>
           </div>
         )}
-
+ 
         {/* ── Empty state ── */}
         {!loading && !generating && !hasTopics && (
           <div className="text-center py-16 animate-fade-in-up">
@@ -251,28 +286,36 @@ export default function Home() {
             </button>
           </div>
         )}
-
+ 
         {/* ── Topic list ── */}
         {!loading && !generating && hasTopics && (
           <div className="animate-fade-in-up">
-            {/* Legend + score key */}
+            {/* Legend + score key + regenerate button */}
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs text-navy-600 font-medium">
                 Click any topic to expand · Sorted by overall score
               </p>
-              <div className="flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1.5 text-green-400">
-                  <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> 8–10 Strong
-                </span>
-                <span className="flex items-center gap-1.5 text-yellow-400">
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> 6–7 Good
-                </span>
-                <span className="flex items-center gap-1.5 text-red-400">
-                  <span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> 1–5 Low
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1.5 text-green-400">
+                    <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> 8–10 Strong
+                  </span>
+                  <span className="flex items-center gap-1.5 text-yellow-400">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> 6–7 Good
+                  </span>
+                  <span className="flex items-center gap-1.5 text-red-400">
+                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> 1–5 Low
+                  </span>
+                </div>
+                <button
+                  onClick={handleRegenerate}
+                  className="flex items-center gap-1.5 bg-navy-800 hover:bg-navy-700 border border-navy-700 hover:border-brand-red text-navy-500 hover:text-brand-red text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                >
+                  🔄 Regenerate
+                </button>
               </div>
             </div>
-
+ 
             <div className="space-y-3">
               {topics.map((topic, index) => (
                 <TopicCard key={topic.id} topic={topic} index={index} />
